@@ -1,0 +1,123 @@
+<!-- TaskFlow - Task List Component Template -->
+<!-- JIRA Story: TFLOW-8 - [FE] Build Task List component -->
+
+<div class="task-list-container">
+  <div class="header-section">
+    <h2>Tasks</h2>
+    <a routerLink="/tasks/new" class="btn btn-primary">+ New Task</a>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Status</label>
+      <select [(ngModel)]="filter.status" (change)="applyFilter()">
+        <option [ngValue]="undefined">All</option>
+        <option value="TODO">To Do</option>
+        <option value="IN_PROGRESS">In Progress</option>
+        <option value="DONE">Done</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label>Priority</label>
+      <select [(ngModel)]="filter.priority" (change)="applyFilter()">
+        <option [ngValue]="undefined">All</option>
+        <option value="LOW">Low</option>
+        <option value="MEDIUM">Medium</option>
+        <option value="HIGH">High</option>
+      </select>
+    </div>
+    
+    <div class="filter-group search">
+      <label>Search</label>
+      <input 
+        type="text" 
+        [(ngModel)]="filter.search" 
+        placeholder="Search tasks..."
+        (keyup.enter)="applyFilter()"
+      />
+      <button class="btn btn-secondary" (click)="applyFilter()">Search</button>
+    </div>
+    
+    <button class="btn btn-link" (click)="clearFilters()">Clear Filters</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading$ | async" class="loading">
+    <div class="spinner"></div>
+    <p>Loading tasks...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-message">
+    <p>⚠️ {{ error }}</p>
+    <button class="btn btn-secondary" (click)="loadTasks()">Retry</button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!(loading$ | async) && !error && tasks.length === 0" class="empty-state">
+    <p>📋 No tasks found</p>
+    <a routerLink="/tasks/new" class="btn btn-primary">Create your first task</a>
+  </div>
+
+  <!-- Task Table -->
+  <table *ngIf="tasks.length > 0" class="task-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Priority</th>
+        <th>Due Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let task of tasks" [routerLink]="['/tasks', task.id, 'edit']" class="task-row">
+        <td class="task-title">
+          <strong>{{ task.title }}</strong>
+          <small *ngIf="task.description">{{ task.description | slice:0:50 }}...</small>
+        </td>
+        <td>
+          <span class="badge" [ngClass]="getStatusClass(task.status)">
+            {{ task.status.replace('_', ' ') }}
+          </span>
+        </td>
+        <td>
+          <span class="badge" [ngClass]="getPriorityClass(task.priority)">
+            {{ task.priority }}
+          </span>
+        </td>
+        <td>{{ formatDate(task.due_date) }}</td>
+        <td class="actions">
+          <button class="btn btn-sm btn-danger" (click)="onDeleteTask(task, $event)">
+            🗑️ Delete
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div *ngIf="totalPages > 1" class="pagination">
+    <button 
+      class="btn btn-secondary" 
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)"
+    >
+      ← Previous
+    </button>
+    
+    <span class="page-info">
+      Page {{ currentPage }} of {{ totalPages }} ({{ totalItems }} items)
+    </span>
+    
+    <button 
+      class="btn btn-secondary" 
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)"
+    >
+      Next →
+    </button>
+  </div>
+</div>
