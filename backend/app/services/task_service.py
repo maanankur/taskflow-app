@@ -167,3 +167,21 @@ def get_filtered_tasks(
         "limit": limit,
         "pages": (total + limit - 1) // limit
     }
+
+def get_filtered_tasks(
+    db: Session,
+    status: Optional[TaskStatus] = None,
+    priority: Optional[TaskPriority] = None,
+    search: Optional[str] = None,
+    overdue: Optional[bool] = None,   # NEW
+    page: int = 1,
+    limit: int = 10
+) -> dict:
+    query = db.query(Task)
+    if status:
+        query = query.filter(Task.status == status)
+    if priority:
+        query = query.filter(Task.priority == priority)
+    if overdue:                                            # NEW
+        query = query.filter(Task.due_date < datetime.utcnow(), Task.status != TaskStatus.DONE)
+    ...
