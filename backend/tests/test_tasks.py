@@ -32,16 +32,25 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
 def setup_database():
-    """Create tables before each test and drop after."""
+    """
+    Create tables before each test and drop after. Claims the get_db
+    override only while THIS file's tests are running (not as a bare
+    module-level assignment) - app.dependency_overrides is a dict on the
+    shared FastAPI app singleton, so a permanent assignment here would get
+    silently overwritten by another test file's own override the moment
+    both are collected in the same pytest run, pointing this file's
+    requests at the wrong (or already-dropped) database.
+    """
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.pop(get_db, None)
 
 
 class TestHealthCheck:
