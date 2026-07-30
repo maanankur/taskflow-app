@@ -1,0 +1,53 @@
+# ============================================================
+# TaskFlow - Project Scope
+# ============================================================
+# Fixed-structure scope definition (see core/scope_definition.py in the
+# Context Wiremap Orchestrator for the schema and why it's fixed rather
+# than free-form). This is TaskFlow's own scope document.
+# ============================================================
+
+scope_id: "taskflow-mvp"
+title: "TaskFlow - Task Management Application"
+owner: "ankur.maan01@irissoftware.com"
+last_updated: "2026-07-30"
+
+problem_statement: >
+  Teams need a simple, self-contained way to track and manage tasks -
+  create, update, filter, and search them - without the overhead of a
+  full-fledged issue tracker. TaskFlow is a full-stack task management
+  application built to exercise that need end-to-end: Angular frontend,
+  Python FastAPI backend, SQLite storage.
+
+goals:
+  - "Users can create, view, update, and delete tasks (CRUD)"
+  - "Users can filter tasks by status and priority, and search by keyword"
+  - "The API is RESTful and documented well enough for the frontend to consume independently"
+  - "The frontend provides a usable dashboard for managing the task list"
+
+in_scope:
+  - "Task CRUD via a RESTful API (FastAPI + SQLAlchemy + SQLite)"
+  - "Status/priority filtering and free-text search, with pagination"
+  - "An Angular frontend: task list view, create/edit form"
+
+out_of_scope:
+  - "Multi-user accounts, authentication, or authorization"
+  - "Notifications, reminders, or due-date alerts"
+  - "A production-grade database (SQLite is a deliberate POC simplification)"
+  - "Mobile app"
+
+success_criteria:
+  - "Every CRUD endpoint returns the correct status code and response shape"
+  - "Filtering and search work correctly against real data, with pagination fields present"
+  - "The frontend can create, list, filter, edit, and delete tasks without a page reload"
+
+linked_requirements:
+  - "TFLOW-1"
+  - "TFLOW-2"
+  - "TFLOW-3"
+  - "TFLOW-4"
+  - "TFLOW-5"
+  - "TFLOW-6"
+  - "TFLOW-7"
+  - "TFLOW-8"
+  - "TFLOW-9"
+  - "TFLOW-10"
