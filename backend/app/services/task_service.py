@@ -6,6 +6,7 @@ JIRA Story: TFLOW-5 - [BE] Add task filtering and search
 Business logic layer for Task operations.
 """
 
+from datetime import date, datetime, time, timedelta
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -17,11 +18,11 @@ from app.schemas.task_schema import TaskCreate, TaskUpdate
 def create_task(db: Session, task_data: TaskCreate) -> Task:
     """
     Create a new task in the database.
-    
+
     Args:
         db: Database session
         task_data: Task creation data
-        
+
     Returns:
         Task: Created task instance
     """
@@ -41,10 +42,10 @@ def create_task(db: Session, task_data: TaskCreate) -> Task:
 def get_all_tasks(db: Session) -> List[Task]:
     """
     Retrieve all tasks from the database.
-    
+
     Args:
         db: Database session
-        
+
     Returns:
         List[Task]: List of all tasks
     """
@@ -54,11 +55,11 @@ def get_all_tasks(db: Session) -> List[Task]:
 def get_task_by_id(db: Session, task_id: int) -> Optional[Task]:
     """
     Retrieve a task by its ID.
-    
+
     Args:
         db: Database session
         task_id: Task ID to find
-        
+
     Returns:
         Optional[Task]: Task if found, None otherwise
     """
@@ -68,24 +69,24 @@ def get_task_by_id(db: Session, task_id: int) -> Optional[Task]:
 def update_task(db: Session, task_id: int, task_data: TaskUpdate) -> Optional[Task]:
     """
     Update an existing task.
-    
+
     Args:
         db: Database session
         task_id: Task ID to update
         task_data: Update data (partial update supported)
-        
+
     Returns:
         Optional[Task]: Updated task if found, None otherwise
     """
     db_task = get_task_by_id(db, task_id)
     if not db_task:
         return None
-    
+
     # Update only provided fields
     update_data = task_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_task, field, value)
-    
+
     db.commit()
     db.refresh(db_task)
     return db_task
@@ -94,21 +95,56 @@ def update_task(db: Session, task_id: int, task_data: TaskUpdate) -> Optional[Ta
 def delete_task(db: Session, task_id: int) -> bool:
     """
     Delete a task from the database.
-    
+
     Args:
         db: Database session
         task_id: Task ID to delete
-        
+
     Returns:
         bool: True if deleted, False if not found
     """
     db_task = get_task_by_id(db, task_id)
     if not db_task:
         return False
-    
+
     db.delete(db_task)
     db.commit()
     return True
+
+
+# Accepted inbound formats for the target_due_date filter. MM/DD/YYYY comes first,
+# matching the M/D/YYYY the task list renders via toLocaleDateString(). Both formats
+# are unambiguous on their own -- DD/MM/YYYY is deliberately NOT accepted, because
+# "07/08/2026" is valid under both readings and guessing would silently return the
+# wrong month's tasks.
+TARGET_DUE_DATE_FORMATS = ("%m/%d/%Y", "%Y-%m-%d")
+
+
+def _parse_target_due_date(value: str) -> date:
+    """
+    Parse a target_due_date filter value into a date.
+
+    JIRA Story: TFLOW-5 - [BE] Add task filtering and search
+
+    Args:
+        value: Date string, e.g. "07/08/2026" (MM/DD/YYYY) or "2026-07-08"
+
+    Returns:
+        date: Parsed calendar date
+
+    Raises:
+        ValueError: If the value matches none of the accepted formats
+    """
+    for fmt in TARGET_DUE_DATE_FORMATS:
+        try:
+            return datetime.strptime(value.strip(), fmt).date()
+        except ValueError:
+            continue
+
+    raise ValueError(
+        f"Invalid target_due_date '{value}'. "
+        "Expected MM/DD/YYYY (e.g. 07/08/2026) or YYYY-MM-DD."
+    )
 
 
 def get_filtered_tasks(
@@ -116,34 +152,39 @@ def get_filtered_tasks(
     status: Optional[TaskStatus] = None,
     priority: Optional[TaskPriority] = None,
     search: Optional[str] = None,
+    target_due_date: Optional[str] = None,
     page: int = 1,
     limit: int = 10
 ) -> dict:
     """
     Filter and search tasks with pagination.
-    
+
     JIRA Story: TFLOW-5 - [BE] Add task filtering and search
-    
+
     Args:
         db: Database session
         status: Filter by status (optional)
         priority: Filter by priority (optional)
         search: Search term for title/description (optional)
+        target_due_date: Match tasks due on this calendar day, MM/DD/YYYY (optional)
         page: Page number (1-indexed)
         limit: Items per page
-        
+
     Returns:
         dict: Paginated results with total count
+
+    Raises:
+        ValueError: If target_due_date is not a recognised date format
     """
     query = db.query(Task)
-    
+
     # Apply filters
     if status:
         query = query.filter(Task.status == status)
-    
+
     if priority:
         query = query.filter(Task.priority == priority)
-    
+
     if search:
         search_term = f"%{search}%"
         query = query.filter(
@@ -152,14 +193,16 @@ def get_filtered_tasks(
                 Task.description.ilike(search_term)
             )
         )
+
     
+
     # Get total count before pagination
     total = query.count()
-    
+
     # Apply pagination
     offset = (page - 1) * limit
     tasks = query.order_by(Task.created_at.desc()).offset(offset).limit(limit).all()
-    
+
     return {
         "items": tasks,
         "total": total,
@@ -167,20 +210,3 @@ def get_filtered_tasks(
         "limit": limit,
         "pages": (total + limit - 1) // limit
     }
-
-def get_filtered_tasks(
-    db: Session,
-    status: Optional[TaskStatus] = None,
-    priority: Optional[TaskPriority] = None,
-    search: Optional[str] = None,
-    overdue: Optional[bool] = None,   # NEW
-    page: int = 1,
-    limit: int = 10
-) -> dict:
-    query = db.query(Task)
-    if status:
-        query = query.filter(Task.status == status)
-    if priority:
-        query = query.filter(Task.priority == priority)
-    if overdue:                                            # NEW
-        query = query.filter(Task.due_date < datetime.utcnow(), Task.status != TaskStatus.DONE)
