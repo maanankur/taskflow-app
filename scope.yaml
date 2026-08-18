@@ -1,0 +1,69 @@
+# ============================================================
+# TASKFLOW - SCOPE DEFINITION
+# ============================================================
+# Read by the Context Wiremap Orchestrator's "scope" node, which fetches
+# this file from this repo's ROOT via the GitHub API (see
+# core/scope_definition.py). The scope -> requirement edge checks that every
+# key listed under linked_requirements still exists as a real requirement,
+# and, triggered from the other direction, that a given requirement is
+# documented in some scope at all.
+#
+# Required fields: scope_id, title, linked_requirements. Everything else is
+# documentation for humans.
+# ============================================================
+
+scope_id: TASKFLOW-CORE
+title: TaskFlow - Task Management Application
+owner: ankur.maan01@irissoftware.com
+last_updated: "2026-08-18"
+
+problem_statement: >
+  Small teams tracking work in spreadsheets lose visibility into what is in
+  progress, what is blocked, and what is overdue. TaskFlow provides a minimal
+  task management application - a FastAPI backend and an Angular frontend -
+  covering create, read, update, delete, plus the filtering needed to answer
+  "what should I work on next?" without a full project-management tool.
+
+goals:
+  - Persist tasks with status, priority, and an optional due date
+  - Expose a REST API over those tasks, with filtering, search, and pagination
+  - Provide an Angular UI to list, create, and edit tasks
+  - Keep the surface small enough to serve as a realistic traceability fixture
+
+# Every key here must resolve to a real requirement, or the scope -> requirement
+# edge reports NOT_DONE and names the missing ones.
+linked_requirements:
+  - TFLOW-1     # [EPIC] TaskFlow - Task Management Application
+  - TFLOW-2     # [BE] Setup FastAPI project structure
+  - TFLOW-3     # [BE] Create Task model and database schema
+  - TFLOW-4     # [BE] Implement Task CRUD API endpoints
+  - TFLOW-5     # [BE] Add task filtering and search
+  - TFLOW-6     # [FE] Setup Angular project with routing
+  - TFLOW-7     # [FE] Create Task service for API communication
+  - TFLOW-8     # [FE] Build Task List component
+  - TFLOW-9     # [FE] Build Task Form component for create/edit
+  - TFLOW-10    # [BE] Add task filtering with due_date
+
+in_scope:
+  - Task CRUD via REST endpoints under /api/tasks
+  - Filtering by status, priority, free-text search, and target due date
+  - Server-side pagination on the task list
+  - Angular task list and task create/edit form
+
+out_of_scope:
+  # Deliberately NOT listed under linked_requirements. A requirement that
+  # exists in the tracker but appears in no scope document is an orphan, and
+  # the scope -> requirement check is meant to surface exactly that - so
+  # TFLOW-11 (dark mode) reporting as undocumented is correct behaviour, not
+  # a bug in the checker.
+  - Theming and dark mode (TFLOW-11)
+  - User accounts, authentication, and authorization
+  - Multi-user assignment, comments, and notifications
+  - File attachments on tasks
+  - Recurring or dependent tasks
+
+success_criteria:
+  - A task can be created, listed, edited, and deleted through the UI
+  - The task list can be filtered by status, priority, search term, and due date
+  - Pagination totals stay consistent with the filters applied
+  - Every backend module has a corresponding test under backend/tests/
